@@ -78,8 +78,10 @@ if __name__ == "__main__":
     new_msg = ['0x' + str(hex(msg[i]).split('0x')[1]) + str(hex(msg[i + 1]).split('0x')[1]) + str(
         hex(msg[i + 2]).split('0x')[1]) + str(hex(msg[i + 3]).split('0x')[1]) for i in
                range(0, len(msg) - (len(msg) % 4), 4)]
+    final_str = [str(hex(msg[i]).split('0x')[1]) for i in range(len(msg) - (len(msg) % 4), len(msg))]
+    final_str = ''.join(final_str)
+    new_msg.append('0x' + final_str)
     print(new_msg)
-    # msg = (''.join(['|' for i in range(len(msg) % 4)])).encode('utf-8')
 
     enc_msg = encrypt(new_msg, public_key)
     print(enc_msg)
@@ -87,7 +89,7 @@ if __name__ == "__main__":
     print(dec_msg)
 
     final_msg = [msg.split('0x')[1] for msg in dec_msg]
-    final_msg = [[int('0x'+line[i:i+2], 16) for i in range(0, len(line), 2)] for line in final_msg]
+    final_msg = [[int('0x' + line[i:i + 2], 16) for i in range(0, len(line), 2)] for line in final_msg]
     print(final_msg)
     final_msg = [chr(char) for character in final_msg for char in character]
     print(''.join(final_msg))
