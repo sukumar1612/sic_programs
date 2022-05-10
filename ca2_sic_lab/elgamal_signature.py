@@ -1,96 +1,77 @@
-import random
+import sympy
+
+min_v = 2 ** 9
+max_v = 2 ** 16
 
 
-def gcd(a, b):
-    if a < b:
-        return gcd(b, a)
-    elif a % b == 0:
-        return b
-    return gcd(b, a % b)
+def find_generator(p):
+    for i in range(2, p):
+        lst = set()
+        for j in range(1, p):
+            lst.add(pow(i, j, p))
+
+        if len(lst) == p - 1:
+            return i
 
 
-def power(a, b, c):
-    x = 1
-    y = a
+def generate_keys():
+    p = sympy.randprime(min_v, max_v)
+    d = sympy.randprime(1, p - 2)
+    e1 = find_generator(p)
+    e2 = pow(e1, d, p)
 
-    while b > 0:
-        if b % 2 != 0:
-            x = (x * y) % c
-        y = (y * y) % c
-        b = int(b / 2)
+    public_key = (e1, e2, p)
+    private_key = (d, p)
 
-    return x % c
-
-
-def key_gen(q: int):
-    a = random.randint(pow(2, 16), q)
-    while gcd(a, q) != 1:
-        a = random.randint(pow(2, 16), q)
-    return a
+    return public_key, private_key
 
 
-def compute_pre_keys():
-    q = random.randint(pow(2, 16), pow(2, 32))
-    g = random.randint(2, q)
-    a = key_gen(q)
+def encryption(public_key, msg):
+    r = sympy.randprime(1, public_key[2] - 1)
+    c1 = pow(public_key[0], r, public_key[2])
+    c2 = pow(msg, 1, public_key[2]) * pow(public_key[1], r, public_key[2]) % public_key[2]
 
-    return q, g, a
-
-
-def generate_public_private_keys():
-    q, g, a = compute_pre_keys()
-    f = q
-    h = power(g, a, q)
-
-    pub_key = (f, h, q, g)
-    priv_key = (a, q)
-
-    return pub_key, priv_key
+    enc_message = (c1, c2)
+    return enc_message
 
 
-def encrypt_message(pub_key, message):
-    k = key_gen(q=pub_key[2])
-    p = power(pub_key[3], k, pub_key[2])
-    s = power(pub_key[1], k, pub_key[2])
+def decryption(private_key, enc_msg):
+    c1d_1 = pow(pow(enc_msg[0], private_key[0], private_key[1]), -1, private_key[1])
+    dec_message = enc_msg[1] * c1d_1 % private_key[1]
 
-    return p, message * s
-
-
-def decrypt_message(priv_key, enc_message):
-    ss = power(enc_message[0], priv_key[0], priv_key[1])
-
-    return int(enc_message[1] / ss)
+    return dec_message
 
 
-def encrypt_4_bytes(priv_keys):
-    f = open("textfile.txt", "r")
-    msg = f.read().encode('utf-8')
-    print(msg)
+def enc_4_bytes(message, public_key):
+    message = [hex(msg).split('0x')[1] for msg in message]
+    new_message = [message[i] + message[i + 1] + message[i + 2] + message[i + 3] for i in
+                   range(0, len(message) - len(message) % 4, 4)]
+    last_bit = ''.join([message[i] for i in range(len(message) - len(message) % 4, len(message))])
+    if len(last_bit) != 0:
+        new_message.append(last_bit)
 
-    print([i for i in msg])
-    new_msg = ['0x' + str(hex(msg[i]).split('0x')[1]) + str(hex(msg[i + 1]).split('0x')[1]) + str(
-        hex(msg[i + 2]).split('0x')[1]) + str(hex(msg[i + 3]).split('0x')[1]) for i in
-               range(0, len(msg) - (len(msg) % 4), 4)]
-    print(new_msg)
+    print(new_message)
+    new_message = [int('0x' + new_message[i], 16) for i in range(0, len(new_message))]
+    new_message = [encryption(public_key=public_key, msg=new_message[i]) for i in range(0, len(new_message))]
 
-    enc_msg = [encrypt_message(priv_keys, int(new_msg[msg], 16)) for msg in range(0, len(new_msg))]
-
-    return enc_msg
+    return new_message
 
 
-def decrypt_4_bytes(message, pub_keys):
-    dec_msg = [hex(decrypt_message(pub_keys, msg)) for msg in message]
+def dec_4_bytes(enc_message, private_key):
+    dec_message = [hex(decryption(private_key=private_key, enc_msg=enc_message[i])) for i in range(0, len(enc_message))]
+    dec_message = [dec_message[i].split('0x')[1] for i in range(0, len(dec_message))]
+    dec_message = [[msg[i:i + 2] for i in range(0, len(msg), 2)] for msg in dec_message]
+    dec_message = ''.join([chr(int('0x' + i, 16)) for msg in dec_message for i in msg])
 
-    print(dec_msg)
-
-    final_msg = [msg.split('0x')[1] for msg in dec_msg]
-    final_msg = [[int('0x' + line[i:i + 2], 16) for i in range(0, len(line), 2)] for line in final_msg]
-    print(final_msg)
-    final_msg = [chr(char) for character in final_msg for char in character]
-    return ''.join(final_msg)
+    return dec_message
 
 
 if __name__ == "__main__":
-    public_keys, private_keys = generate_public_private_keys()
-    msg = encrypt_4_bytes(public_keys)
-    print(decrypt_4_bytes(msg, private_keys))
+    public_key, private_key = generate_keys()
+
+    f = open("textfile.txt", 'r')
+    message = f.read().encode('utf-8')
+    enc = [encryption(public_key, i) for i in message]
+    print(enc)
+    dec = ''.join([chr(decryption(private_key, i)) for i in enc])
+    print(dec)
