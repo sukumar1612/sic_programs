@@ -1,99 +1,88 @@
+import math
 import os
 
 import sympy
-import random
 
-min_val = 31
-max_val = 2 ** 32
-
-
-def gcd(a: int, b: int):
-    if b == 0:
-        return a
-    return gcd(b, a % b)
+min_val = 2 ** 8
+max_val = 2 ** 128
 
 
-def choose_e(phi_n: int):
-    e = 0
-    while gcd(phi_n, e) != 1:
-        e = random.randint(1, phi_n)
+def generate_primes():
+    p = 0
+    q = 0
+    while p == q:
+        p = sympy.randprime(min_val, max_val)
+        q = sympy.randprime(min_val, max_val)
+
+    return p, q
+
+
+def gen_co_primes(a, b, phi_n):
+    e = sympy.randprime(a, b)
+    while math.gcd(e, phi_n) != 1:
+        e = sympy.randprime(a, b)
+
     return e
 
 
-def e_gcd(a: int, b: int):
-    if a == 0:
-        return b, 0, 1
-    else:
-        g, y, x = e_gcd(b % a, a)
-        return g, x - (b // a) * y, y
-
-
-def mod_inv(a: int, m: int):
-    g, x, y = e_gcd(a, m)
-    if g != 1:
-        raise Exception('modular inverse does not exist')
-    else:
-        return x % m
-
-
 def generate_keys():
-    p, q = sympy.randprime(min_val, max_val), sympy.randprime(min_val, max_val)
-
+    p, q = generate_primes()
     n = p * q
     phi_n = (p - 1) * (q - 1)
+    e = gen_co_primes(a=min_val, b=phi_n, phi_n=phi_n)
 
-    e = choose_e(phi_n)
-    e_1 = mod_inv(e, phi_n)
-    d = e_1 % phi_n
-
-    private_key = (d, n)
+    d = pow(e, -1, phi_n)
     public_key = (e, n)
+    private_key = (d, n)
 
-    return private_key, public_key
-
-
-def encrypt(msg: list[hex], public_key: tuple):
-    e, n = public_key
-    return [hex(pow(int(char, 16), e, n)) for char in msg]
+    return public_key, private_key
 
 
-def decrypt(msg: list[str], priv_key: tuple):
-    d, n = priv_key
-    return [hex(pow(int(char, 16), d, n)) for char in msg]
+def encryption(public_key, msg):
+    return pow(msg, public_key[0], public_key[1])
+
+
+def decryption(private_key, enc_msg):
+    return pow(enc_msg, private_key[0], private_key[1])
+
+
+def enc_4_bytes(message, public_key):
+    message = [hex(msg).split('0x')[1] for msg in message]
+    new_message = [message[i] + message[i + 1] + message[i + 2] + message[i + 3] for i in
+                   range(0, len(message) - len(message) % 4, 4)]
+    last_bit = ''.join([message[i] for i in range(len(message) - len(message) % 4, len(message))])
+    if len(last_bit) != 0:
+        new_message.append(last_bit)
+
+    print(new_message)
+    new_message = [int('0x' + new_message[i], 16) for i in range(0, len(new_message))]
+    new_message = [encryption(public_key=public_key, msg=new_message[i]) for i in range(0, len(new_message))]
+
+    return new_message
+
+
+def dec_4_bytes(enc_message, private_key):
+    dec_message = [hex(decryption(private_key=private_key, enc_msg=enc_message[i])) for i in range(0, len(enc_message))]
+    dec_message = [dec_message[i].split('0x')[1] for i in range(0, len(dec_message))]
+    dec_message = [[msg[i:i + 2] for i in range(0, len(msg), 2)] for msg in dec_message]
+    dec_message = ''.join([chr(int('0x' + i, 16)) for msg in dec_message for i in msg])
+
+    return dec_message
 
 
 if __name__ == "__main__":
-    priv_key, public_key = generate_keys()
+    pa, pra = generate_keys()
+    pb, prb = generate_keys()
 
-    print(priv_key, public_key)
+    ra = str(os.urandom(16)).encode('utf-8')
+    rb = str(os.urandom(16)).encode('utf-8')
+    print(ra)
+    print(rb)
+    bob = enc_4_bytes(ra, pb)
+    bob_de = dec_4_bytes(bob, prb)
 
-    msg = str(os.urandom(32)).encode('utf-8')
-    print(msg)
-    print([i for i in msg])
-    new_msg = ['0x' + str(hex(msg[i]).split('0x')[1]) + str(hex(msg[i + 1]).split('0x')[1]) + str(
-        hex(msg[i + 2]).split('0x')[1]) + str(hex(msg[i + 3]).split('0x')[1]) for i in
-               range(0, len(msg) - (len(msg) % 4), 4)]
+    alice = (enc_4_bytes(ra, pa), enc_4_bytes(rb, pa))
+    alice_de = (dec_4_bytes(alice[0], pra), dec_4_bytes(alice[1], pra))
 
-    final_str = [str(hex(msg[i]).split('0x')[1]) for i in range(len(msg) - (len(msg) % 4), len(msg))]
-    final_str = ''.join(final_str)
-    new_msg.append('0x' + final_str)
-    print(new_msg)
-    # msg = (''.join(['|' for i in range(len(msg) % 4)])).encode('utf-8')
-
-    enc_msg = encrypt(new_msg, public_key)
-    print(enc_msg)
-    dec_msg = decrypt(enc_msg, priv_key)
-    print(dec_msg)
-
-    final_msg = [msg.split('0x')[1] for msg in dec_msg]
-    final_msg = [[int('0x' + line[i:i + 2], 16) for i in range(0, len(line), 2)] for line in final_msg]
-    print(final_msg)
-    final_msg = [chr(char) for character in final_msg for char in character]
-    final_msg = (''.join(final_msg)).encode('utf-8')
-
-    print(final_msg)
-
-    print(final_msg == msg)
-    # final_msg = (''.join(dec_msg)).encode('utf-8')
-
-    # print(final_msg)
+    print(alice_de[0] == ra.decode('utf-8'))
+    print(alice_de[1] == rb.decode('utf-8'))
