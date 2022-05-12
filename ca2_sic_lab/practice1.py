@@ -6,6 +6,8 @@ Created on Wed May 11 20:39:01 2022
 @author: apple
 """
 
+# perceptron
+
 x = [
      [11.0, 13],
      [9.0, 12],
