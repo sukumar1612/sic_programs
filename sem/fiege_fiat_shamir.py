@@ -9,6 +9,7 @@ Created on Sun May 15 11:48:46 2022
 
 import sympy
 import random
+import math
 
 MAX_VAL = 2**16
 MIN_VAL = 2**8
@@ -21,7 +22,11 @@ def third_party_gen_n():
     return p*q
 
 def generate_secret(n):
-    return random.randint(1, n-1)
+    val = sympy.randprime(1, MAX_VAL)
+    while math.gcd(val, n)!=1:
+        val = random.randint(1, n-1)
+    
+    return val
 
 
 def generate_alice_secrets(n):
