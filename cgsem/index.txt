@@ -1,0 +1,13 @@
+bezier.cpp
+ccurve.py
+dragon.py
+julia.py
+mandelbrot.py
+prg3_1.py
+prg3_2.py
+prg3_3.py
+prg3_4.py
+prg3_5.py
+projections1.cpp
+projections2.cpp
+serpinski.py
