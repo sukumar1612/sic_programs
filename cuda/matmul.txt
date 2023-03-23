@@ -1,0 +1,94 @@
+%%cu
+
+#include<bits/stdc++.h>
+#include<cstdlib>
+
+
+using namespace std;
+
+chrono::time_point<chrono::system_clock> startTime, endTime;
+
+void startTimer()
+{
+  startTime = chrono::system_clock::now();
+}
+
+double stopTimer()
+{
+  endTime = chrono::system_clock::now();
+  chrono::duration<double> elapsedSeconds = endTime - startTime;
+  return elapsedSeconds.count();
+}
+
+
+__global__ void mat_mul(int r1, int r2, int c1, int c2, int *a, int *b, int *c){
+  c[blockIdx.x * c2 + threadIdx.x] = 0;
+  for(int k=0;k<r2;k++){
+    c[blockIdx.x * c2 + threadIdx.x] += a[blockIdx.x * c1 + k] * b[k * c2 + threadIdx.x];
+  }
+}
+
+
+int main(){
+  int r1 = 10;
+  int c1 = 5;
+  int r2 = 5;
+  int c2 = 10;
+
+  int size_p = sizeof(int);
+  int *d_a, *d_b, *d_c;
+
+  // initialize arrays
+  cudaMalloc(&d_a, r1*c1*size_p);
+  cudaMalloc(&d_b, r2*c2*size_p);
+  cudaMalloc(&d_c, r1*c2*size_p);
+
+  int *a = (int *)malloc(r1*c1*size_p);
+  int *b = (int *)malloc(r2*c2*size_p);
+  int *c = (int *)malloc(r1*c2*size_p);
+
+  // initialize array
+  for(int i=0;i<r1;i++)
+  {
+    for(int j=0;j<c1;j++)
+    {
+      a[i*c1 + j] = i+j;
+      cout<<i+j;
+    }
+    cout<<endl;
+  }
+  cout<<"\n\n"<<endl;
+  for(int i=0;i<r2;i++)
+  {
+    for(int j=0;j<c2;j++)
+    {
+      b[i*c2 + j] = i+j;
+      cout<<i+j;
+    }
+    cout<<endl;
+  }
+  cout<<"\n\n"<<endl;
+  // copy to device
+  cudaMemcpy(d_a, a, r1*c1*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_b, b, r2*c2*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_c, c, r1*c2*sizeof(int), cudaMemcpyHostToDevice);
+
+  cout<<"hello world"<<endl;
+  // function 
+
+  startTimer();
+  mat_mul<<<r1, c2>>> (r1, r2, c1, c2, d_a, d_b, d_c);
+  double time = stopTimer();
+  cout<<time<<endl;
+  
+  // copy from device to host
+  cudaMemcpy(c, d_c, r1*c2*sizeof(int), cudaMemcpyDeviceToHost);
+  
+  for(int i=0;i<r1;i++){
+    for(int j=0;j<c2;j++){
+      cout<<c[i*c2 + j]<<" ";
+    }
+    cout<<endl;
+  }
+  return 0;
+}
