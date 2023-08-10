@@ -1,0 +1,65 @@
+# @title Default title text
+arrival_rate = 0.0625
+inter_arrival_time = 1/arrival_rate
+service_time = 8
+n = 10**7
+seconds = 10**7
+
+arrival_time = np.random.exponential(inter_arrival_time, n)
+cumu_arrival_time = []
+prev_time = 0
+for time in arrival_time:
+  prev_time+=time
+  cumu_arrival_time.append(prev_time)
+
+cumu_arrival_time_int = [int(i)+2 for i in cumu_arrival_time]
+
+service_time_int1 = [int(i)+1 for i in np.random.exponential(service_time, n)]
+service_time_int2 = [int(i)+1 for i in np.random.exponential(service_time, n)]
+
+queue = [cumu_arrival_time_int[0], cumu_arrival_time_int[1], cumu_arrival_time_int[2]]
+
+serv1_k = 0
+serv2_k = 0
+arv_k = 3
+
+server_1 = cumu_arrival_time_int[0] + service_time_int1[serv1_k]
+server_2 = cumu_arrival_time_int[1] + service_time_int2[serv2_k]
+
+cust_waiting_time = 0
+system_idle_time = min(cumu_arrival_time_int[0], cumu_arrival_time_int[1])
+
+for i in range(0, seconds):
+  if server_1 <= i:
+    if len(queue) == 0:
+      system_idle_time+=1
+      if i>=cumu_arrival_time_int[arv_k]:
+        queue.append(cumu_arrival_time_int[arv_k])
+        arv_k+=1
+      continue
+
+    server_1 = i + service_time_int1[serv1_k]
+    cust_waiting_time += i + service_time_int1[serv1_k] - queue.pop(0)
+    serv1_k+=1
+
+  if server_2 <= i:
+    if len(queue) == 0:
+      system_idle_time+=1
+      if i>=cumu_arrival_time_int[arv_k]:
+        queue.append(cumu_arrival_time_int[arv_k])
+        arv_k+=1
+      continue
+
+    server_2 = i + service_time_int2[serv2_k]
+    cust_waiting_time += i + service_time_int2[serv2_k] - queue.pop(0)
+    serv2_k+=1
+
+  if i>=cumu_arrival_time_int[arv_k]:
+    queue.append(cumu_arrival_time_int[arv_k])
+    arv_k+=1
+
+  if len(queue) == 0:
+    system_idle_time+=1
+
+  if arv_k >= len(cumu_arrival_time_int) - 1:
+    break

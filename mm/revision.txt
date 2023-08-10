@@ -1,0 +1,252 @@
+######1 -> 5 types of random number generators
+-----------------------------------
+1. linear_congruential_random_generator
+xn = (a*xn + b)%m
+a, b < m
+m-> power of 2
+
+
+common params
+a=75
+b=74
+m=2**16 + 1
+
+-----------------------------------
+2. xor shift
+x = xor_shift(x) & 0xFFFFFFFF
+def xor_shift(x):
+    x ^= x>>13
+    x ^= x<<17
+    x ^= x>>5
+    return x
+
+-----------------------------------
+3. lehmer
+xn = (a*xn)%m
+m = 2**16
+0< x0 <m -> 7**5
+seed = prime
+
+
+-----------------------------------
+4. Middle Square method
+random_nos.append((middle_square(seed) * seed)%9999)
+seed = middle_square(seed)
+
+def middle_square(seed):
+    s = str(seed ** 2)
+    while len(s) != 8:
+        s = "0" + s
+    seed = int(s[2:6])
+    return seed
+
+-----------------------------------
+5. additive congruential generator
+
+def additive_rand(seed, m, count):
+  xn = seed
+  increment = random.randint(500, 600)
+  random_nos = []
+
+  for i in range(count):
+    random_nos.append(xn)
+    xn = (xn + increment)%m
+
+  return random_nos
+
+
+######2 -> PI estimation
+-----------------------------------
+
+uniform distribution
+x=[np.random.uniform(low = -1.0, high = 1.0, size = None) for _ in range(n*100)]
+y=[np.random.uniform(low = -1.0, high = 1.0, size = None) for _ in range(n*100)]
+all_points = [(xi, yi) for xi, yi in zip(x, y)]
+points_inside_circle = [] # is calculated
+
+plt.scatter(x, y, c="blue")
+plt.scatter(x1, y1, c="red")
+
+pi = len(points_inside_circle)/len(all_points)*4
+
+
+######3 -> irregular lamina
+-----------------------------------
+import numpy as np
+
+
+xr = [np.random.uniform(low = xmin, high = xmax, size = None) for _ in range(n*100)]
+yr = [np.random.uniform(low = -1, high = 1, size = None) for _ in range(n*100)]
+
+all_points = [(xi, yi) for xi, yi in zip(xr, yr)]
+
+
+plt.scatter(xr, yr, c="blue")
+plt.scatter(x1, y1, c="red")
+
+
+######4 -> M/M/1
+-----------------------------------
+import numpy as np
+
+arrival_rate = 1
+inter_arrival_time = 1/arrival_rate
+service_time = 1
+
+arrival_time = np.random.exponential(inter_arrival_time, 100)
+service_time = np.random.exponential(service_time, 100)
+
+cumu_arrival_time = []
+prev_time = 0
+for time in arrival_time:
+  prev_time+=time
+  cumu_arrival_time.append(prev_time)
+
+cust_waiting_time = 0
+system_idle_time = cumu_arrival_time[0]
+
+queue = [cumu_arrival_time[0]]
+for i in range(1, len(cumu_arrival_time)):
+  queue.append(max(service_time[i] + queue[i-1], cumu_arrival_time[i]))
+
+  if service_time[i] + queue[i-1] > cumu_arrival_time[i]:
+    cust_waiting_time += service_time[i] + queue[i-1] - cumu_arrival_time[i]
+  elif service_time[i] + queue[i-1] < cumu_arrival_time[i]:
+    system_idle_time += cumu_arrival_time[i] - service_time[i] + queue[i-1]
+
+
+
+######4 -> M/M/2
+-----------------------------------
+import numpy as np 
+
+arrival_rate = 0.0625
+inter_arrival_time = 1/arrival_rate
+service_time = 8
+n = 10**7
+seconds = 10**7
+
+arrival_time = np.random.exponential(inter_arrival_time, n)
+cumu_arrival_time = []
+prev_time = 0
+for time in arrival_time:
+  prev_time+=time
+  cumu_arrival_time.append(prev_time)
+
+cumu_arrival_time_int = [int(i)+2 for i in cumu_arrival_time]
+
+service_time_int1 = [int(i)+1 for i in np.random.exponential(service_time, n)]
+service_time_int2 = [int(i)+1 for i in np.random.exponential(service_time, n)]
+
+queue = [cumu_arrival_time_int[0], cumu_arrival_time_int[1], cumu_arrival_time_int[2]]
+
+serv1_k = 0
+serv2_k = 0
+arv_k = 3
+
+server_1 = cumu_arrival_time_int[0] + service_time_int1[serv1_k]
+server_2 = cumu_arrival_time_int[1] + service_time_int2[serv2_k]
+
+cust_waiting_time = 0
+system_idle_time = min(cumu_arrival_time_int[0], cumu_arrival_time_int[1])
+
+for i in range(0, seconds):
+  if server_1 <= i:
+    if len(queue) == 0:
+      system_idle_time+=1
+      if i>=cumu_arrival_time_int[arv_k]:
+        queue.append(cumu_arrival_time_int[arv_k])
+        arv_k+=1
+      continue
+
+    server_1 = i + service_time_int1[serv1_k]
+    cust_waiting_time += i + service_time_int1[serv1_k] - queue.pop(0)
+    serv1_k+=1
+
+  if server_2 <= i:
+    if len(queue) == 0:
+      system_idle_time+=1
+      if i>=cumu_arrival_time_int[arv_k]:
+        queue.append(cumu_arrival_time_int[arv_k])
+        arv_k+=1
+      continue
+
+    server_2 = i + service_time_int2[serv2_k]
+    cust_waiting_time += i + service_time_int2[serv2_k] - queue.pop(0)
+    serv2_k+=1
+
+  if i>=cumu_arrival_time_int[arv_k]:
+    queue.append(cumu_arrival_time_int[arv_k])
+    arv_k+=1
+
+  if len(queue) == 0:
+    system_idle_time+=1
+
+  if arv_k >= len(cumu_arrival_time_int) - 1:
+    break
+
+
+
+
+
+######5 -> Interpolation
+-----------------------------------
+import scipy.interpolate as interpolate
+
+f = interpolate.interp1d(x, y)
+f2 = interpolate.interp1d(x, y, kind = 'cubic') # cubic
+
+interpolated_values = f(x_to_check)
+plt.scatter(dates_to_check, interpolated_values, s=2, c="r")
+plt.scatter([int(date.timestamp()) for date in tickerDf.index], tickerDf.Close, s=2, c="g")
+plt.xlabel("Timestamp")
+plt.ylabel("Stock Price")
+plt.show()
+
+
+
+######5 -> regression
+-----------------------------------
+import statsmodels.api as sm
+import scipy.stats as stats
+
+
+model = sm.OLS(y, x).fit()
+t_value = ((model.params[0] - 0)/model.bse)
+p_value = stats.t.sf(t_value, model.df_resid)
+
+
+
+######6 -> Moving Average
+-----------------------------------
+from statsmodels.tsa.stattools import acf, pacf
+from statsmodels.tsa.arima.model import ARIMA
+
+ma = ARIMA(train_set[["Close"]], order=(0, 0, q)).fit()
+ma.summary()
+ma.predict(start=0, end=train_size+test_size)
+
+
+
+######7 -> ARMA/ARIMA -acf,pacf
+-----------------------------------
+from statsmodels.tsa.stattools import acf, pacf
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.stattools import adfuller
+
+p->AR
+d->I
+q->MA
+
+acf = plot_acf(tickerDf.Close.diff().dropna())
+pacf_plot = plot_pacf(tickerDf.Close.diff().dropna())
+
+model = ARIMA(train_set[["Close"]], order=(p, d, q)).fit()
+
+# for ARMA -> 
+PACF and p values -> AR
+ACF and q values -> MA
+
+# for ARIMA -> 
+same + stationary values check
+
