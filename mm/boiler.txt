@@ -1,0 +1,39 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.tsa.stattools import acf, pacf
+from statsmodels.tsa.arima.model import ARIMA
+import numpy as np
+import yfinance as yf
+import matplotlib.pyplot as plt
+from statsmodels.tsa.stattools import adfuller
+import statsmodels.api as sm
+import scipy.stats as stats
+import scipy.interpolate as interpolate
+import datetime
+
+
+def stationarity(col):
+    res = adfuller(col.dropna())
+    print("Test Statistic:", res[0])
+    print("P-Value:", res[1])
+    if res[1] < 0.05:
+        print("Stationary")
+    else:
+        print("Non-Stationary")
+
+tickerData = yf.Ticker(tickerSymbol)
+tickerDf = tickerData.history(period='1d', start='2021-1-1', end='2021-4-1')
+tickerDf = tickerDf[['Close']]
+tickerDf.head()
+
+plt.figure(figsize=(10,4))
+plt.plot(tickerDf.Close)
+plt.title('Stock Price over Time (%s)'%tickerSymbol, fontsize=20)
+plt.ylabel('Price', fontsize=16)
+for year in range(2021,2022):
+    plt.axvline(pd.to_datetime(str(year)+'-01-01'), color='k', linestyle='--', alpha=0.2)
+
+sm.OLS(y, x).fit()
+t_value = ((model.params[0] - 0)/model.bse)
+p_value = stats.t.sf(t_value, model.df_resid)
